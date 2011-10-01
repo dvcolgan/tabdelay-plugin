@@ -58,6 +58,9 @@
                     }
                 });
                 localStorage.setItem('tabdelayprefs', JSON.stringify(entries));
+                chrome.tabs.getSelected(null, function(tab) {
+                    chrome.tabs.update(tab.id, { selected: true } )
+                });
             };
 
             var countdownNum = 10;
