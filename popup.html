@@ -4,96 +4,97 @@
     <head>
         <title>Set Tab Delay Preferences</title>
         <style>
-            input.entry {
-                width: 260px;
-                margin-bottom: 10px;
+            div.entry {
+                width: 300px;
                 float: left;
             }
-            button.bottom {
+            input {
+                width: 260px;
+                margin-bottom: 10px;
+            }
+            button.bottom-button {
                 float: right;
             }
-            button.remove {
+            button.remove-button {
                 float: right;
             }
             div#container {
                 margin: 10px;
                 width: 300px;
+                height: 100px;
             }
         </style>
         <script src='jquery-1.6.2.min.js'></script>
         <script>
-            var next_entry_id = 0;
-
-            var remove = function(){
-                var entry_p = $(this).parent();
-                var this_id = entry_p.attr('id').split('_')[1];
-                var after_ps = entry_p.nextAll();
-
-                //remove this entry
-                entry_p.remove();
-                next_entry_id--;
-
-                //bump down the ids of the following entries
-                var cnt = 0;
-                for(var i = this_id; i < next_entry_id; i++) {
-                    var this_p = after_ps.eq(cnt);
-                    var this_p_id = this_p.attr('id').split('_')[1];
-                    this_p.attr('id', 'entry_' + (this_p_id - 1));
-                    cnt++;
-                }
+            var add = function(initial_text){
+                var new_entry = $('<div class="entry">' +
+                    '<input type="text" value="' + initial_text + '"></input>' +
+                    '<button class="remove-button">X</button>' +
+                    '</div>').hide();
+                $('div#entries').append(new_entry);
+                new_entry.find('button').click(remove);
+                new_entry.slideDown();
+                return new_entry;
             };
 
-            var add = function(initial_text, desc_class){
-                var new_entry = $('<p id="entry_' + next_entry_id + '"><input class="entry" type="text" value="' + initial_text + '"></input><button class="' + desc_class + '">X</button></p>');
-                $('div#entries').append(new_entry);
-                new_entry.find('button.' + desc_class).click(remove);
-                next_entry_id++;
+            var remove = function(){
+                var entry = $(this).parent();
+                entry.slideUp(function(){
+                    entry.remove();
+                });
             };
 
             var save = function(){
                 var entries = [];
-                $('div#entries').find('input').each(function() {
+                $('div.entry').find('input').each(function() {
                     if ($(this).val() !== '') {
                         entries.push($(this).val());
                     }
                 });
                 localStorage.setItem('tabdelayprefs', JSON.stringify(entries));
-                chrome.tabs.getSelected(null, function(tab) {
-                    chrome.tabs.update(tab.id, { selected: true } )
+                $('div.entry').find('input, button').attr('disabled', 'disabled');
+                $('div#bottom-buttons button').attr('disabled', 'disabled');
+                $('div#container h1').html('Settings saved!').css('color', 'green');
+                $('div.entry').slideUp(function() {
+                    chrome.tabs.getSelected(null, function(tab) {
+                        chrome.tabs.update(tab.id, { selected: true } )
+                    });
                 });
             };
 
             var countdownNum = 10;
             function incTimer(){
                 setTimeout (function(){
-                    if(countdownNum != 0){
+                    if(countdownNum > 0){
                         countdownNum--;
-                        $('button.dontremove').html(countdownNum);
+                        $('div.entry.dontremove').find('button').html(countdownNum);
                         incTimer();
                     } else {
-                        $('button.dontremove').html('X');
-                        $('button.dontremove').removeAttr('disabled');
+                        $('div.entry.dontremove').find('button').html('X').removeAttr('disabled');
+                        $('div.entry.dontremove').find('input').removeAttr('disabled');
+                        $('div.entry.dontremove').removeClass('dontremove');
                     }
                 },1000);
             }
 
             $(document).ready(function(){
-                $('button#add').click(function(){add('');});
-                $('button#save').click(save);
+                $('button#add-button').click(function(){add('');});
+                $('button#save-button').click(save);
                 var previous_entries = JSON.parse(localStorage.getItem('tabdelayprefs'));
                 if (previous_entries.length > 0) {
                     for(var i = 0; i < previous_entries.length; i++) {
-                        add(previous_entries[i], 'dontremove');
+                        var new_entry = add(previous_entries[i], 'dontremove');
+                        new_entry.addClass('dontremove');
+                        new_entry.find('input').attr('disabled', 'disabled');
+                        new_entry.find('button').attr('disabled', 'disabled').html('10');
                     }
-                    $('button.dontremove').attr('disabled', 'disabled');
-                    $('button.dontremove').html('10');
                     incTimer();
                 }
                 else {
-                    add('', 'remove');
-                    add('', 'remove');
-                    add('', 'remove');
-                    add('', 'remove');
+                    add('');
+                    add('');
+                    add('');
+                    add('');
                 }
             });
         </script>
@@ -105,9 +106,9 @@
             <div id="entries">
             </div>
 
-            <p>
-                <button id="save" class="bottom">Save</button>
-                <button id="add" class="bottom">Add another</button>
+            <div id="bottom-buttons">
+                <button id="save-button" class="bottom-button">Save</button>
+                <button id="add-button" class="bottom-button">Add another</button>
             </p>
         </div>
 

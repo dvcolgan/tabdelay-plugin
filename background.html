@@ -3,10 +3,12 @@
     if (!localStorage.getItem('tabdelayprefs')) {
         localStorage.setItem('tabdelayprefs', JSON.stringify(''));
     }
+
+    var refracting = false;
     
     var pageLoad = function(tabId, changeInfo, tab) {
         if (changeInfo.url) {
-            if (localStorage.getItem('tabdelayurl') === changeInfo.url) { //don't run this if we have already made them wait
+            if (refracting) { //don't run this if we have already made them wait
                 return;
             }
             else {
@@ -15,6 +17,10 @@
                     if (changeInfo.url.split('?')[0].indexOf(blacklist[i]) !== -1) { //if we have a match
                         localStorage.setItem('tabdelayurl', changeInfo.url);
                         chrome.tabs.remove(tabId);
+                        refracting = true;
+                        setTimeout(function(){
+                            refracting = false;
+                        }, 600000);
                         chrome.tabs.create({'url': 'http://tabclock.com/wait/'}, function(){
                             chrome.tabs.executeScript(null, {code:"document.getElementById('returnurl').innerHTML = '" + localStorage.getItem('tabdelayurl') + "';"});
                         });
